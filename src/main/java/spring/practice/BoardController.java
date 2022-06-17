@@ -1,34 +1,79 @@
 package spring.practice;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @Controller
-@RequiredArgsConstructor
+@Slf4j
 public class BoardController {
 
-    private final BoardService boardService;
+    private BoardService boardService;
+
+    public BoardController(BoardService boardService) {
+        this.boardService = boardService;
+    }
 
     @GetMapping("/")
-    public String list(Model model) {
-        List<BoardDto> boardDtoList = boardService.getBoardList();
+    public String list(Model model,
+                       @RequestParam(value = "page", defaultValue = "1") Integer pageNum) {
+        List<BoardDto> boardDtoList = boardService.getBoardList(pageNum);
+        Integer[] pageList = boardService.getPageList(pageNum);
+
         model.addAttribute("boardList", boardDtoList);
-        return "list";
+        model.addAttribute("pageList", pageList);
+        return "board/list.html";
     }
 
-    @GetMapping("/write")
+    @GetMapping("/post")
     public String write() {
-        return "write";
+        return "board/write.html";
     }
 
-    @PostMapping("/write")
-    public String write(BoardDto dto) {
-        boardService.savePost(dto);
+    @PostMapping("/post")
+    public String write(BoardDto boardDto) {
+        boardService.savePost(boardDto);
         return "redirect:/";
+    }
+
+    @GetMapping("/post/{no}")
+    public String detail(@PathVariable("no") Long id, Model model) {
+        BoardDto boardDto = boardService.getPost(id);
+
+        model.addAttribute("boardDto", boardDto);
+        return "board/detail";
+    }
+
+    @GetMapping("/post/edit/{no}")
+    public String edit(@PathVariable("no") Long id, Model model) {
+        BoardDto boardDto = boardService.getPost(id);
+
+        model.addAttribute("boardDto", boardDto);
+        return "board/update";
+    }
+
+    @PutMapping("/post/edit/{no}")
+    public String update(BoardDto boardDto) {
+        boardService.savePost(boardDto);
+        return "redirect:/";
+    }
+
+    @DeleteMapping("/post/{no}")
+    public String delete(@PathVariable("no") Long id) {
+        boardService.deletePost(id);
+
+        return "redirect:/";
+    }
+
+    @GetMapping("/board/search")
+    public String search(@RequestParam(value = "keyword") String keyword, Model model) {
+        List<BoardDto> boardDtoList = boardService.searchPosts(keyword);
+        model.addAttribute("boardList", boardDtoList);
+
+        return "board/list";
     }
 }
